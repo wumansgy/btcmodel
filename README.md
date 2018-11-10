@@ -16,7 +16,7 @@
 
 ## use
 
-1. `go ger github.com/wumansgy/btcmodel`
+1. `git clone https://github.com/wumansgy/btcmodel.git`
 2. Switch to the directory below
 3. `go build main.go`
 4. command

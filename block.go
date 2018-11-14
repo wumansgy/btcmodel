@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"log"
 	"encoding/gob"
+	"crypto/sha256"
 )
 
 //data , prevHash, Hash
@@ -26,23 +27,28 @@ type Block struct {
 
 	Hash []byte //当前区块哈希值, 正常的区块不存在，我们为了方便放进来
 
-	Data []byte //数据本身，区块体，先用字符串表示，v4版本的时候会引用真正的交易结构
+	//Data []byte //数据本身，区块体，先用字符串表示，v4版本的时候会引用真正的交易结构
+	Transactions []*Transaction
 }
 
-func NewBlock(data string, prevHash []byte) *Block {
+func NewBlock(txs []*Transaction, prevHash []byte) *Block {
 	block := Block{
 		Version:       00,
 		PrevBlockHash: prevHash,
 		MerkelRoot:    []byte{}, //先填写为空
 		TimeStamp:     uint64(time.Now().Unix()),
 		Difficulty:    difficulty,
-		Nonce:         0,        //目前不挖矿，随便写一个值，等会在赋值
+		Nonce:         0,        //目前不挖矿，随便写一个值
 		Hash:          []byte{}, //见SetHash函数
-		Data:          []byte(data),
+		//Data:          []byte(data),
+		Transactions: txs,
 	}
 
-	pow := NewProofOfWork(block)  //挖矿计算
-	hash, nonce := pow.Run()     //返回符合难度值的哈希和目标值
+	block.setMerkelRoot()
+
+	//pow运算
+	pow := NewProofOfWork(block)
+	hash, nonce := pow.Run()
 
 	block.Hash = hash
 	block.Nonce = nonce
@@ -91,4 +97,20 @@ func Uint2Byte(num uint64) []byte {
 	}
 
 	return buffer.Bytes()
+}
+
+
+//创建一个简单的MerkelRoot, 使用block中的交易作为数据来源
+//只是将多个交易的哈希拼接起来，做sha256
+func (block *Block)setMerkelRoot()  {
+	var info []byte
+
+	for _, tx := range block.Transactions {
+		//只是将多个交易的哈希拼接起来，做sha256
+		info = append(info, tx.TXID...)
+	}
+
+	hash := sha256.Sum256(info)
+
+	block.MerkelRoot = hash[:]
 }

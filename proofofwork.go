@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/big"
+	"fmt"
 	"crypto/sha256"
 	"bytes"
 )
@@ -13,6 +14,7 @@ const difficulty  = 16
 type ProofOfWork struct {
 	//数据来源
 	block Block
+
 	//难度值
 	target *big.Int //一个能够处理大数的内置的类型，有比较方法
 }
@@ -25,19 +27,6 @@ func NewProofOfWork(block Block) *ProofOfWork {
 	pow := ProofOfWork{
 		block: block,
 	}
-	//使用全局的难度值，推导目标哈希值 , 前面5个0，数字num = 5， 000001000000xxxxxxx
-	//构造这个目标值
-	// 0000100000000000000000000000000000000000000000000000000000000000
-
-	//步骤
-	//初始值1
-	// 0000000000000000000000000000000000000000000000000000000000000001
-
-	//整体向左移动256
-	//10000000000000000000000000000000000000000000000000000000000000000
-
-	//整体向右移动5个位(20次)
-	// 0000100000000000000000000000000000000000000000000000000000000000
 
 	////引用一个临时的big.int来接这个target
 	//var targetInt big.Int
@@ -50,7 +39,6 @@ func NewProofOfWork(block Block) *ProofOfWork {
 	////right shift 右移20
 	//targetInt.Rsh(targetInt, difficulty)
 
-	//终极版
 	targetInt.Lsh(targetInt, 256 - difficulty)
 
 	pow.target = targetInt
@@ -67,7 +55,6 @@ func (pow *ProofOfWork) prepareData(nonce uint64) []byte {
 		Uint2Byte(block.TimeStamp),
 		Uint2Byte(block.Difficulty),
 		Uint2Byte(nonce),
-		block.Data,
 	}
 
 	info := bytes.Join(bytesArray, []byte{})
@@ -77,6 +64,8 @@ func (pow *ProofOfWork) prepareData(nonce uint64) []byte {
 //3. 实现挖矿计算满足条件哈希值的函数 nonce
 //计算完之后返回当前区块的哈希，和nonce
 func (pow *ProofOfWork) Run() ([]byte, uint64) {
+	fmt.Printf("pow run...\n")
+
 	//1. 拿到区块数据
 	//block := pow.block
 	//区块的哈希值
@@ -101,6 +90,7 @@ func (pow *ProofOfWork) Run() ([]byte, uint64) {
 		//func (x *Int) Cmp(y *Int) (r int) {
 		if currentHashInt.Cmp(pow.target) == -1 {
 			//a. 比目标小，成功，返回哈希和nonce
+			fmt.Printf("找到了哈希值：%x, %d\n", currentHash, nonce)
 			break
 		} else {
 			//b. 比目标大,继续nonce++
@@ -124,6 +114,5 @@ func (pow *ProofOfWork) IsValid() bool {
 	tmpInt := big.Int{}
 	tmpInt.SetBytes(hash[:])
 	// 比较
-
 	return tmpInt.Cmp(pow.target) == -1
 }
